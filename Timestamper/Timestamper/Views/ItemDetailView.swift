@@ -19,6 +19,17 @@ struct ItemDetailView: View {
     @State private var showingDeleteAlert = false
     // Toggle for if empty state should appear
     @State private var showingEmptyState = false
+    // Toggle for if timestamp alert should appear
+    @State private var showingTimestampAlert = false
+    
+    //@State var timestamps: [String]?
+    @State var timestamps = [String]()
+    
+    // Var to hold the user input
+    @State var noteInput: String = ""
+    // Var to hold the focused state for the input
+    @FocusState private var inputFieldIsFocused: Bool
+    
     // Stopwatch object
     @ObservedObject var stopWatchManager = StopWatchManager()
     
@@ -40,6 +51,17 @@ struct ItemDetailView: View {
         showingEmptyState = true
     }
     
+    // Grab timestamp for the input field
+    func getTimestamp(seconds: Int, difference: Int) {
+        var grabSeconds = seconds - difference
+        if grabSeconds < 0 { grabSeconds = 0 }
+        let inputText = secondsToMinutesAndSeconds(seconds: grabSeconds)
+        noteInput = "\(inputText): "
+        inputFieldIsFocused = true
+    }
+    
+    
+    
     
     //: MARK: - BODY
     
@@ -51,6 +73,7 @@ struct ItemDetailView: View {
                 
                 // Title
                 Text(item?.title ?? "Unknown Title")
+                    .font(.headline)
                 
                 Divider()
                 
@@ -58,7 +81,7 @@ struct ItemDetailView: View {
                 HStack {
                     
                     // Counter
-                    Text(String(format: "%.1f", stopWatchManager.secondsElapsed))
+                    Text(secondsToMinutesAndSeconds(seconds: stopWatchManager.secondsElapsed))
                     
                     Spacer()
                     
@@ -87,17 +110,88 @@ struct ItemDetailView: View {
                 .background(Color("timerCellBg").cornerRadius(8))
                 
                 
+                // Content
+                if (timestamps.count != 0) {
+                    ForEach(timestamps, id: \.self) { timestamp in
+                        HStack {
+                            Text(timestamp)
+                            Spacer()
+                            Button(action: {}, label: {
+                                Label("Delete", systemImage: "minus.circle")
+                            })
+                        }
+                    }
+                } else {
+                    Text("Timestamps will appear here")
+                }
+                
+                
                 Spacer()
                 
                 
                 // Add timestamp button
-                Button(action: {
-                    // Do something
-                }, label: {
-                    Text("Add Timestamp")
-                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0)
-                })
-                    //.buttonStyle(BlueButtonStyle())
+                VStack {
+                    
+                    HStack {
+                        // -60 seconds
+                        Button(action: {
+                            getTimestamp(
+                                seconds: stopWatchManager.secondsElapsed,
+                                difference: 60
+                            )
+//                            var grabSeconds = stopWatchManager.secondsElapsed - 60
+//                            if grabSeconds < 0 { grabSeconds = 0 }
+//                            let test = secondsToMinutesAndSeconds(seconds: grabSeconds)
+//                            noteInput = "\(test): "
+//                            inputFieldIsFocused = true
+                            
+                        }, label: { Text("-60s") })
+                        
+                        // -30 seconds
+                        Button(action: {
+                            getTimestamp(
+                                seconds: stopWatchManager.secondsElapsed,
+                                difference: 30
+                            )
+                        }, label: { Text("-30s") })
+                        
+                        // -10 seconds
+                        Button(action: {
+                            getTimestamp(
+                                seconds: stopWatchManager.secondsElapsed,
+                                difference: 10
+                            )
+                        }, label: { Text("-10s") })
+                        
+                        // 0 seconds
+                        Button(action: {
+                            getTimestamp(
+                                seconds: stopWatchManager.secondsElapsed,
+                                difference: 0
+                            )
+                        }, label: { Text("0s") })
+                    }
+                    
+                    HStack {
+                        // Note input
+                        TextField("Enter Note...", text: $noteInput, onCommit: {
+                            timestamps.append(noteInput)
+                        })
+                            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0)
+                            .focused($inputFieldIsFocused)
+                        //Text("Your username: \($username)")
+                        
+                        // Add button
+                        Button(action: {
+                            timestamps.append(noteInput)
+                        }, label: {
+                            Text("Save")
+                        })
+                            //.buttonStyle(BlueButtonStyle())
+                    }
+                        
+                }
+                
                     
                 
                 
@@ -116,6 +210,12 @@ struct ItemDetailView: View {
                 .alert(isPresented: $showingDeleteAlert) {
                     Alert(title: Text("Delete Item"), message: Text("Are you sure?"), primaryButton: .destructive(Text("Delete")) {
                             self.deleteItem()
+                        }, secondaryButton: .cancel()
+                    )
+                }
+                .alert(isPresented: $showingTimestampAlert) {
+                    Alert(title: Text("Add Timestamp"), message: Text("Are you sure?"), primaryButton: .destructive(Text("Delete")) {
+                            //self.deleteItem()
                         }, secondaryButton: .cancel()
                     )
                 }
